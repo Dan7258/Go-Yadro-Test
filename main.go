@@ -13,6 +13,7 @@ import (
 	"time"
 )
 
+// Данные с файла config.json
 type Biatlon struct {
 	Laps        int    `json:"laps"`
 	LapLen      int    `json:"lapLen"`
@@ -22,6 +23,7 @@ type Biatlon struct {
 	StartDelta  string `json:"startDelta"`
 }
 
+// данные о каждом учатнике
 type Biatlonist struct {
 	ID                string
 	HeIsDisqualified  bool
@@ -36,12 +38,14 @@ type Biatlonist struct {
 	LastCountMiss     int
 }
 
+// Данные основного круга
 type LapData struct {
 	TotalTime string
 	TimeOut   string
 	Speed     float64
 }
 
+// Данные штрафного круга
 type PenaltyData struct {
 	TimeIn    string
 	TimeOut   string
@@ -70,6 +74,7 @@ func main() {
 
 }
 
+// Форматированный вывод
 func formatedPrint(w io.Writer, biatlonist Biatlonist, biatlon *Biatlon) {
 	if biatlonist.HeIsDisqualified {
 		fmt.Fprintf(w, "[NotStarted] %s {,} {,} 0/0\n",
@@ -101,11 +106,14 @@ func formatedPrint(w io.Writer, biatlonist Biatlonist, biatlon *Biatlon) {
 	}
 
 }
+
+// Обрезание числа до заданного знака после запятой
 func truncateFloat(f float64, digits int) float64 {
 	pow := math.Pow(10, float64(digits))
 	return math.Trunc(f*pow) / pow
 }
 
+// Форматированный вывод данных об основных кругах
 func printLapsList(w io.Writer, lapsList []LapData, biatlon *Biatlon) {
 	if biatlon.Laps > 1 {
 		fmt.Fprintf(w, "[")
@@ -128,6 +136,7 @@ func printLapsList(w io.Writer, lapsList []LapData, biatlon *Biatlon) {
 	}
 }
 
+// Форматированный вывод данных о штрафных кругах
 func printPenaltyList(w io.Writer, penaltyList []PenaltyData) {
 	if len(penaltyList) > 1 {
 		fmt.Fprintf(w, "[")
@@ -147,6 +156,7 @@ func printPenaltyList(w io.Writer, penaltyList []PenaltyData) {
 	}
 }
 
+// Сортировка по итоговому времени участника
 func SortedMap(biatlonistMap map[string]*Biatlonist) []Biatlonist {
 	biatlonisList := make([]Biatlonist, 0)
 	for _, v := range biatlonistMap {
@@ -160,6 +170,7 @@ func SortedMap(biatlonistMap map[string]*Biatlonist) []Biatlonist {
 	return biatlonisList
 }
 
+// Получение входящих данных
 func getIvents(w io.Writer, biatlonistMap map[string]*Biatlonist, biatlon *Biatlon) {
 	file, err := os.Open("events")
 	if err != nil {
@@ -175,6 +186,7 @@ func getIvents(w io.Writer, biatlonistMap map[string]*Biatlonist, biatlon *Biatl
 	}
 }
 
+// Вывод и обработка полученных данных
 func formatedEvent(w io.Writer, biatlonistMap map[string]*Biatlonist, biatlon *Biatlon, line []string) {
 	switch line[1] {
 	case "1": // регистрация
@@ -229,6 +241,7 @@ func formatedEvent(w io.Writer, biatlonistMap map[string]*Biatlonist, biatlon *B
 	}
 }
 
+// Форматирование времени
 func formattedTime(t time.Duration) string {
 	hours := int(t.Hours())
 	minutes := int(t.Minutes()) % 60
@@ -237,6 +250,7 @@ func formattedTime(t time.Duration) string {
 	return fmt.Sprintf("%02d:%02d:%02d.%03d", hours, minutes, seconds, milliseconds)
 }
 
+// Добавление участника
 func CreateBiatlonist(line []string) *Biatlonist {
 	biatlonist := new(Biatlonist)
 	biatlonist.ID = line[2]
@@ -247,6 +261,7 @@ func CreateBiatlonist(line []string) *Biatlonist {
 	return biatlonist
 }
 
+// Проверка на правильный старт
 func checkStartBiatlonist(biatlon *Biatlon, biatlonist *Biatlonist, line []string) error {
 	biatlonist.StartTime = line[0][1 : len(line[0])-1]
 	t1, _ := time.Parse("15:04:05.000", biatlonist.DrawingLots)
@@ -268,6 +283,7 @@ func checkStartBiatlonist(biatlon *Biatlon, biatlonist *Biatlonist, line []strin
 	}
 }
 
+// Добавление штрафного круга
 func addPenaltyLap(biatlonist *Biatlonist, line []string) {
 	biatlonist.PenaltyList = append(biatlonist.PenaltyList, PenaltyData{
 		TimeIn:  line[0][1 : len(line[0])-1],
@@ -276,6 +292,7 @@ func addPenaltyLap(biatlonist *Biatlonist, line []string) {
 	})
 }
 
+// Получение времени после завершения штрафного круга
 func updateLastPenaltyLap(biatlon *Biatlon, biatlonist *Biatlonist, line []string) {
 	bPen := &biatlonist.PenaltyList[len(biatlonist.PenaltyList)-1]
 	bPen.TimeOut = line[0][1 : len(line[0])-1]
@@ -288,6 +305,7 @@ func updateLastPenaltyLap(biatlon *Biatlon, biatlonist *Biatlonist, line []strin
 	bPen.Speed = float64(biatlon.PenaltyLen*biatlonist.LastCountMiss) / diff.Seconds()
 }
 
+// Добавление пройденного основного круга
 func addMainLap(biatlon *Biatlon, biatlonist *Biatlonist, line []string) {
 	if biatlonist.StartTime != "" && len(biatlonist.LapsList) == 0 {
 		t1, _ := time.Parse("15:04:05.000", biatlonist.DrawingLots)
@@ -310,6 +328,7 @@ func addMainLap(biatlon *Biatlon, biatlonist *Biatlonist, line []string) {
 	}
 }
 
+// Проверка финиширования участника после прохождения основного круга
 func checkFinished(biatlon *Biatlon, biatlonist *Biatlonist, line []string) bool {
 	if len(biatlonist.LapsList) == biatlon.Laps && !biatlonist.HeIsDisqualified && !biatlonist.HeCantContinue {
 		t1, _ := time.Parse("15:04:05.000", biatlonist.DrawingLots)
@@ -321,6 +340,7 @@ func checkFinished(biatlon *Biatlon, biatlonist *Biatlonist, line []string) bool
 	return false
 }
 
+// Получение данных с файла config.json
 func getConfig() (*Biatlon, error) {
 	file, err := os.Open("config.json")
 	if err != nil {
